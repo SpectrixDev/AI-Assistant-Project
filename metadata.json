@@ -1,0 +1,7 @@
+
+{
+  "name": "Assistant.ai Instances",
+  "description": "A multi-instance smart personal assistant platform. Create and manage separate assistants, each with their own documents, calendar, memory, and AI chat, powered by Gemini.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
