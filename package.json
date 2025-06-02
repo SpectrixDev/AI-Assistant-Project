@@ -13,8 +13,6 @@
     "react-dom": "^19.1.0",
     "@google/genai": "^1.3.0",
     "pdfjs-dist": "^5.3.31",
-    "firebase/app": "^10.12.2",
-    "firebase/firestore": "^10.12.2",
     "firebase": "^11.8.1"
   },
   "devDependencies": {
