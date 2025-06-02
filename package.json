@@ -1,25 +1,12 @@
 {
-  "name": "assistant.ai-instances",
+  "name": "gemini-personal-assistant",
+  "version": "0.1.0",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "description": "A browser-based personal assistant using Gemini API, React, and import maps. Firebase is used for backend data storage.",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "start": "echo \"Serve index.html using a static file server. No npm start script needed for this client-side app.\"",
+    "build": "echo \"No client-side build step required, uses import maps and direct TSX processing by the browser or a compatible dev server.\""
   },
-  "dependencies": {
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "@google/genai": "^1.3.0",
-    "pdfjs-dist": "^5.3.31",
-    "firebase/app": "^10.12.2",
-    "firebase/firestore": "^10.12.2",
-    "firebase": "^11.8.1"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "typescript": "~5.7.2",
-    "vite": "^6.2.0"
-  }
+  "dependencies": {},
+  "devDependencies": {}
 }
