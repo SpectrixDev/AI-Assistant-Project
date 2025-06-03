@@ -18,7 +18,7 @@ import { firebaseServiceInstance } from './firebaseService'; // For status check
 
 
 const USER_PROVIDED_GOOGLE_CLIENT_ID_KEY = 'user_provided_google_client_id';
-const DEFAULT_FALLBACK_GOOGLE_CLIENT_ID = "107726663434-mg9lsn0337dq7f3sq6bd29hsa8ao837b.apps.googleusercontent.com";
+const DEFAULT_FALLBACK_GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 
 
 // Helper function to safely access environment variables (remains global)

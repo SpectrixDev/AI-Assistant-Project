@@ -17,13 +17,13 @@ import type { AssistantInstanceMeta, InstanceData } from './types';
 
 // Firebase configuration object provided by the user
 const firebaseConfig = {
-  apiKey: "AIzaSyAiM4V6nP5K5cb2Rv2eZz0LcKUAJlzmzF8",
-  authDomain: "assistant-ai-f9b35.firebaseapp.com",
-  projectId: "assistant-ai-f9b35",
-  storageBucket: "assistant-ai-f9b35.firebasestorage.app",
-  messagingSenderId: "1078307178957",
-  appId: "1:1078307178957:web:b7518b7602ad1af8185c84",
-  measurementId: "G-HPMDVSK5LF"
+  apiKey: process.env.FIREBASE_API_KEY || "",
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || "",
+  projectId: process.env.FIREBASE_PROJECT_ID || "",
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET || "",
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || "",
+  appId: process.env.FIREBASE_APP_ID || "",
+  measurementId: process.env.FIREBASE_MEASUREMENT_ID || ""
 };
 
 class FirebaseService {
