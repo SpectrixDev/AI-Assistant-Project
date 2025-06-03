@@ -1,22 +1,32 @@
 import type { AssistantInstanceMeta, InstanceData, AssistantSettings, ChatMessage, UploadedDocument, CalendarEvent, MemoryStore } from '../types';
-import { firebaseServiceInstance as firebaseService } from '../firebaseService'; // Import the singleton instance
 
 export const generateId = (): string => {
-  // Firestore generates its own document IDs, but we might need this for sub-objects if not using subcollections
   return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
-export async function getAssistantInstancesMeta(): Promise<AssistantInstanceMeta[]> {
-  if (!firebaseService.initialized) {
-    console.warn("Firebase not initialized, returning empty meta list.");
+const META_KEY = 'assistant_instances_meta';
+const INSTANCE_PREFIX = 'assistant_instance_';
+
+function loadMeta(): AssistantInstanceMeta[] {
+  const raw = localStorage.getItem(META_KEY);
+  if (!raw) return [];
+  try {
+    return JSON.parse(raw);
+  } catch {
     return [];
   }
-  try {
-    return await firebaseService.getInstancesMeta();
-  } catch (error) {
-    console.error("storageService: Error getting assistant instances meta:", error);
-    return []; // Return empty on error to prevent app crash
-  }
+}
+
+function saveMeta(meta: AssistantInstanceMeta[]) {
+  localStorage.setItem(META_KEY, JSON.stringify(meta));
+}
+
+function instanceKey(id: string) {
+  return INSTANCE_PREFIX + id;
+}
+
+export async function getAssistantInstancesMeta(): Promise<AssistantInstanceMeta[]> {
+  return loadMeta();
 }
 
 export const getDefaultSettings = (instanceName: string): AssistantSettings => ({
@@ -83,17 +93,16 @@ export const getDefaultMemoryStore = (pin: string, instanceName: string): Memory
 });
 
 export async function createNewInstance(name: string, pin: string): Promise<AssistantInstanceMeta> {
-  if (!firebaseService.initialized) {
-    throw new Error("Firebase not initialized. Cannot create new instance.");
-  }
-  const newId = generateId(); 
-  // For Firestore auto-generated ID: 
-  // const newDocRef = doc(collection(firebaseService.db, 'assistantInstances')); 
-  // const newId = newDocRef.id;
-
+  const newId = generateId();
   const createdAt = Date.now();
   const newMeta: AssistantInstanceMeta = { id: newId, name, createdAt };
 
+  // Save meta
+  const meta = loadMeta();
+  meta.unshift(newMeta);
+  saveMeta(meta);
+
+  // Save instance data
   const defaultInstanceData: InstanceData = {
     settings: getDefaultSettings(name),
     chatMessages: [],
@@ -101,33 +110,26 @@ export async function createNewInstance(name: string, pin: string): Promise<Assi
     calendarEvents: [],
     memoryStore: getDefaultMemoryStore(pin, name),
   };
-  
-  await firebaseService.createNewInstanceMeta(newId, name, createdAt);
-  await firebaseService.saveInstanceData(newId, defaultInstanceData);
-  
+  localStorage.setItem(instanceKey(newId), JSON.stringify(defaultInstanceData));
+
   return newMeta;
 }
 
 export async function deleteInstance(instanceId: string): Promise<void> {
-  if (!firebaseService.initialized) {
-     console.warn("Firebase not initialized. Cannot delete instance.");
-     return;
-  }
-  try {
-    await firebaseService.deleteInstance(instanceId);
-  } catch (error) {
-    console.error("storageService: Error deleting instance:", error);
-    throw error;
-  }
+  // Remove meta
+  let meta = loadMeta();
+  meta = meta.filter(m => m.id !== instanceId);
+  saveMeta(meta);
+
+  // Remove instance data
+  localStorage.removeItem(instanceKey(instanceId));
 }
 
 export async function getInstanceData(instanceId: string): Promise<InstanceData | null> {
-  if (!firebaseService.initialized) {
-    console.warn("Firebase not initialized. Cannot get instance data.");
-    return null;
-  }
+  const raw = localStorage.getItem(instanceKey(instanceId));
+  if (!raw) return null;
   try {
-    const data = await firebaseService.getInstanceData(instanceId);
+    const data: InstanceData = JSON.parse(raw);
     if (data && data.memoryStore && data.memoryStore.pin) {
       const expectedPinInfo = `PIN: ${data.memoryStore.pin}`;
       if (typeof data.memoryStore.information === 'string' && !data.memoryStore.information.includes(expectedPinInfo)) {
@@ -138,34 +140,20 @@ export async function getInstanceData(instanceId: string): Promise<InstanceData 
       }
     }
     return data;
-  } catch (error) {
-    console.error("storageService: Error getting instance data:", error);
-    return null; // Return null on error
+  } catch {
+    return null;
   }
 }
 
 export async function saveInstanceData(instanceId: string, data: InstanceData): Promise<void> {
-   if (!firebaseService.initialized) {
-     console.warn("Firebase not initialized. Cannot save instance data.");
-     return;
-   }
-  try {
-    // Before saving documents, ensure 'file' property is not included as it's not serializable to Firestore directly
-    const serializableData = {
-      ...data,
-      documents: data.documents.map(doc => ({
-        id: doc.id,
-        name: doc.name,
-        textContent: doc.textContent,
-      }))
-    };
-    await firebaseService.saveInstanceData(instanceId, serializableData);
-  } catch (error) {
-    console.error("storageService: Error saving instance data:", error);
-    throw error;
-  }
+  // Remove non-serializable fields from documents
+  const serializableData = {
+    ...data,
+    documents: data.documents.map(doc => ({
+      id: doc.id,
+      name: doc.name,
+      textContent: doc.textContent,
+    }))
+  };
+  localStorage.setItem(instanceKey(instanceId), JSON.stringify(serializableData));
 }
-
-// Removed specific savers (saveInstanceSettings, saveInstanceChatMessages, etc.)
-// and their helper getAndUpdatePart as they are not used.
-// App.tsx uses its onSaveInstanceData prop for all saves.

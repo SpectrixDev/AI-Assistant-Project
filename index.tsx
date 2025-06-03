@@ -6,7 +6,6 @@ import { LandingView } from './components/LandingView';
 import { PinInputView } from './components/PinInputView';
 import type { AssistantInstanceMeta, InstanceData } from './types';
 import { getAssistantInstancesMeta, getInstanceData, saveInstanceData as saveFullInstanceData } from './services/storageService';
-import { firebaseServiceInstance } from './firebaseService'; // Import to trigger initialization
 
 type AppScreen = 'landing' | 'pinInput' | 'app';
 
@@ -21,20 +20,12 @@ const MainOrchestrator: React.FC = () => {
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoading(true);
-      if (firebaseServiceInstance.initialized) {
-        try {
-          const metas = await getAssistantInstancesMeta();
-          setInstancesMeta(metas);
-        } catch (error) {
-          console.error("Failed to load instance metadata:", error);
-          // Optionally set an error state to display to the user
-        }
-      } else if (firebaseServiceInstance.error) {
-         console.error("Firebase initialization failed:", firebaseServiceInstance.error);
-         alert(`Firebase initialization failed: ${firebaseServiceInstance.error}. Please check console.`);
-      } else {
-        // Firebase might still be initializing, this typically shouldn't happen if singleton is used correctly
-        console.warn("Firebase service not yet ready during initial data load.");
+      try {
+        const metas = await getAssistantInstancesMeta();
+        setInstancesMeta(metas);
+      } catch (error) {
+        console.error("Failed to load instance metadata:", error);
+        // Optionally set an error state to display to the user
       }
       setIsLoading(false);
     };
@@ -42,17 +33,14 @@ const MainOrchestrator: React.FC = () => {
   }, []); // Run once on mount
 
   const refreshInstancesMeta = useCallback(async () => {
-    if (firebaseServiceInstance.initialized) {
-      try {
-        const metas = await getAssistantInstancesMeta();
-        setInstancesMeta(metas);
-        return metas;
-      } catch (error) {
-        console.error("Failed to refresh instance metadata:", error);
-        return instancesMeta; // return current if refresh fails
-      }
+    try {
+      const metas = await getAssistantInstancesMeta();
+      setInstancesMeta(metas);
+      return metas;
+    } catch (error) {
+      console.error("Failed to refresh instance metadata:", error);
+      return instancesMeta; // return current if refresh fails
     }
-    return instancesMeta; // return current if firebase not init
   }, [instancesMeta]);
 
 
@@ -123,21 +111,11 @@ const MainOrchestrator: React.FC = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-slate-900 flex flex-col items-center justify-center p-6 text-white">
         <div className="text-2xl font-semibold">Loading Assistant Instances...</div>
-        {firebaseServiceInstance.error && <p className="text-red-400 mt-4">Firebase Error: {firebaseServiceInstance.error}</p>}
       </div>
     );
   }
 
   // If Firebase initialization failed and we are past initial loading for the landing screen, show a dedicated error.
-  if (!isLoading && firebaseServiceInstance.error && currentScreen === 'landing') {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-primary-900 to-slate-900 flex flex-col items-center justify-center p-6 text-white">
-            <h1 className="text-3xl font-bold text-red-400">Firebase Initialization Failed</h1>
-            <p className="text-slate-300 mt-2">Could not connect to the data store. Please check the console for details.</p>
-            <p className="text-sm text-slate-400 mt-1">Error: {firebaseServiceInstance.error}</p>
-        </div>
-      );
-  }
 
   // Regular screen rendering
   if (currentScreen === 'landing') {

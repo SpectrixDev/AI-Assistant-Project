@@ -12,7 +12,6 @@ interface AccountViewProps {
   googleClientIdSource: GoogleClientIdSource;
   onSetUserGoogleClientId: (id: string) => void;
   onClearUserGoogleClientId: () => void;
-  firebaseStatusMessage: string; // New prop for Firebase status
 }
 
 export const AccountView: React.FC<AccountViewProps> = ({
@@ -24,7 +23,6 @@ export const AccountView: React.FC<AccountViewProps> = ({
   googleClientIdSource,
   onSetUserGoogleClientId,
   onClearUserGoogleClientId,
-  firebaseStatusMessage,
 }) => {
   const [userInputClientId, setUserInputClientId] = useState('');
   // Advanced section is open by default if Google Client ID is not configured,
@@ -63,17 +61,6 @@ export const AccountView: React.FC<AccountViewProps> = ({
         <h2 className="text-2xl font-semibold text-slate-700">Account Management</h2>
       </div>
       
-      {/* Firebase Status Section */}
-      <div className="bg-white p-6 rounded-lg shadow-lg">
-        <h3 className="text-lg font-medium text-slate-600 mb-2">Data Storage (Firebase)</h3>
-        <p className={`text-sm ${firebaseStatusMessage.toLowerCase().includes('error') ? 'text-red-600' : 'text-green-600'}`}>
-          {firebaseStatusMessage}
-        </p>
-        <p className="text-xs text-slate-500 mt-1">
-            Your assistant's data (instances, chats, settings) is stored securely in the cloud using Firebase Firestore.
-            The connection status is shown above. If there's an error, check your Firebase project setup and configuration.
-        </p>
-      </div>
 
 
       <div className="bg-white p-6 rounded-lg shadow-lg">

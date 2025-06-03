@@ -3,16 +3,18 @@ import React, { useState, useMemo } from 'react';
 import type { CalendarEvent } from '../types';
 import { CalendarIcon, TrashIcon, PlusCircleIcon } from './icons';
 
+import type { ViewName } from '../types';
 interface CalendarViewProps {
   events: CalendarEvent[];
   onAddEvent: (event: Omit<CalendarEvent, 'id' | 'isGoogleEvent' | 'googleEventId'>) => void;
   onRemoveEvent: (eventId: string) => void;
   isGoogleSignedIn: boolean;
+  setCurrentView: (view: ViewName) => void;
 }
 
 const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-export const CalendarView: React.FC<CalendarViewProps> = ({ events, onAddEvent, onRemoveEvent, isGoogleSignedIn }) => {
+export const CalendarView: React.FC<CalendarViewProps> = ({ events, onAddEvent, onRemoveEvent, isGoogleSignedIn, setCurrentView }) => {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -86,6 +88,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ events, onAddEvent, 
 
   return (
     <div className="space-y-6 p-1 h-full flex flex-col">
+      {!isGoogleSignedIn && (
+        <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-900 p-4 mb-2 rounded-md flex items-center justify-between">
+          <div>
+            <strong>Sync your calendar with Google!</strong>
+            <span className="block text-sm mt-1">Sign in to enable Google Calendar sync and manage your events across devices.</span>
+          </div>
+          <button
+            onClick={() => setCurrentView('account')}
+            className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
+            Sync with Google Calendar
+          </button>
+        </div>
+      )}
       <div className="flex justify-between items-center flex-shrink-0">
         <h2 className="text-2xl font-semibold text-slate-700">Calendar Events</h2>
         {isGoogleSignedIn && (

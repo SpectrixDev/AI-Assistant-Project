@@ -1,5 +1,6 @@
 
 
+/// <reference types="vite/client" />
 import React, { useState, useEffect, useCallback } from 'react';
 import { Layout } from './components/Layout';
 import { ChatView } from './components/ChatView';
@@ -14,23 +15,12 @@ import { GoogleCalendarService } from './services/googleCalendarService';
 import type { UploadedDocument, CalendarEvent, AssistantSettings, ChatMessage, ViewName, ParsedCalendarAction, CalendarEventQuery, CalendarEventData, GeminiServiceResponse, GoogleAuthState, MemoryStore, InstanceData, GoogleClientIdSource } from './types';
 import { DangerIcon } from './components/icons';
 // Removed unused specific save functions: saveInstanceSettings, saveInstanceChatMessages, saveInstanceDocuments, saveInstanceCalendarEvents, saveInstanceMemoryStore
-import { firebaseServiceInstance } from './firebaseService'; // For status check
 
 
 const USER_PROVIDED_GOOGLE_CLIENT_ID_KEY = 'user_provided_google_client_id';
-const DEFAULT_FALLBACK_GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
+const DEFAULT_FALLBACK_GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 
-// Helper function to safely access environment variables (remains global)
-const safeGetEnv = (key1: string, key2?: string): string | undefined => {
-  if (typeof process !== 'undefined' && process.env) {
-    const env = process.env;
-    const primaryVal = typeof env === 'object' && env !== null ? env[key1] : undefined;
-    const secondaryVal = typeof env === 'object' && env !== null && key2 ? env[key2] : undefined;
-    return primaryVal || secondaryVal;
-  }
-  return undefined;
-};
 
 interface AppProps {
   instanceId: string;
@@ -59,30 +49,18 @@ const App: React.FC<AppProps> = ({ instanceId, instanceName, initialInstanceData
   const [googleAuthServiceInstance, setGoogleAuthServiceInstance] = useState<GoogleAuthService | null>(null);
   const [googleCalendarServiceInstance, setGoogleCalendarServiceInstance] = useState<GoogleCalendarService | null>(null);
   
-  const [envGoogleClientId, setEnvGoogleClientId] = useState<string|undefined>(undefined);
   const [userPersistedGoogleClientId, setUserPersistedGoogleClientId] = useState<string|null>(null);
   const [activeGoogleClientId, setActiveGoogleClientId] = useState<string|undefined>(undefined);
   const [isGoogleConfigComplete, setIsGoogleConfigComplete] = useState(false); 
   const [googleClientIdSource, setGoogleClientIdSource] = useState<GoogleClientIdSource>('none');
 
-  const [firebaseStatusMessage, setFirebaseStatusMessage] = useState<string>('');
 
 
-  // 0. Firebase Status
-  useEffect(() => {
-    if (firebaseServiceInstance.initialized) {
-      setFirebaseStatusMessage(`Firebase connected (Project: ${firebaseServiceInstance.getProjectId() || 'Unknown'})`);
-    } else if (firebaseServiceInstance.error) {
-      setFirebaseStatusMessage(`Firebase Error: ${firebaseServiceInstance.error}`);
-    } else {
-      setFirebaseStatusMessage("Firebase initializing...");
-    }
-  }, []);
 
 
   // 1. Read env var for Gemini API Key (once)
   useEffect(() => {
-    const geminiApiKey = safeGetEnv('REACT_APP_API_KEY', 'API_KEY');
+    const geminiApiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY;
     if (geminiApiKey) {
       setIsGeminiApiKeyConfigured(true);
       setGeminiService(new GeminiService(geminiApiKey));
@@ -91,10 +69,6 @@ const App: React.FC<AppProps> = ({ instanceId, instanceName, initialInstanceData
     }
   }, []);
 
-  // 2. Read env var for Google Client ID (once)
-  useEffect(() => {
-    setEnvGoogleClientId(safeGetEnv('REACT_APP_GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_ID'));
-  }, []);
 
   // 3. Load user-persisted Google Client ID from localStorage (once)
   useEffect(() => {
@@ -111,8 +85,8 @@ const App: React.FC<AppProps> = ({ instanceId, instanceName, initialInstanceData
     let newActiveId: string | undefined = undefined;
     let source: GoogleClientIdSource = 'none';
 
-    if (envGoogleClientId) {
-      newActiveId = envGoogleClientId;
+    if (import.meta.env.VITE_GOOGLE_CLIENT_ID) {
+      newActiveId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
       source = 'environment';
     } else if (userPersistedGoogleClientId) {
       newActiveId = userPersistedGoogleClientId;
@@ -125,19 +99,19 @@ const App: React.FC<AppProps> = ({ instanceId, instanceName, initialInstanceData
     setActiveGoogleClientId(newActiveId);
     setGoogleClientIdSource(source);
     setIsGoogleConfigComplete(!!newActiveId);
-  }, [envGoogleClientId, userPersistedGoogleClientId]);
+  }, [userPersistedGoogleClientId]);
 
 
   // 5. Initialize Google Services (depends on activeGoogleClientId)
   useEffect(() => {
-    const googleApiKeyFromEnv = safeGetEnv('REACT_APP_GOOGLE_API_KEY', 'GOOGLE_API_KEY');
+    const googleApiKeyFromEnv = import.meta.env.VITE_GOOGLE_API_KEY;
 
     if (activeGoogleClientId) {
-      const authService = new GoogleAuthService(activeGoogleClientId, googleApiKeyFromEnv);
+      const authService = new GoogleAuthService(activeGoogleClientId);
       setGoogleAuthServiceInstance(authService);
       authService.onAuthStateChanged(setGoogleAuthState); 
       
-      const calendarService = new GoogleCalendarService(authService, googleApiKeyFromEnv);
+      const calendarService = new GoogleCalendarService(authService);
       setGoogleCalendarServiceInstance(calendarService);
       
       if(settings.googleClientId !== activeGoogleClientId) {
@@ -557,7 +531,13 @@ const App: React.FC<AppProps> = ({ instanceId, instanceName, initialInstanceData
         // Pass UploadedDocument[] which might have 'file' for current session uploads
         return <DocumentManagementView documents={documents} onAddDocument={addDocument} onRemoveDocument={removeDocument} />;
       case 'calendar':
-        return <CalendarView events={calendarEvents} onAddEvent={addEventFromCalendarView} onRemoveEvent={removeEventFromCalendarView} isGoogleSignedIn={googleAuthState.isSignedIn}/>;
+        return <CalendarView
+          events={calendarEvents}
+          onAddEvent={addEventFromCalendarView}
+          onRemoveEvent={removeEventFromCalendarView}
+          isGoogleSignedIn={googleAuthState.isSignedIn}
+          setCurrentView={setCurrentView}
+        />;
       case 'memory':
         return <MemoryView memoryStore={memoryStore} onUpdateMemoryStore={updateMemoryStoreCallback} />;
       case 'account':
@@ -570,7 +550,6 @@ const App: React.FC<AppProps> = ({ instanceId, instanceName, initialInstanceData
                   googleClientIdSource={googleClientIdSource}
                   onSetUserGoogleClientId={handleSetUserGoogleClientId}
                   onClearUserGoogleClientId={handleClearUserGoogleClientId}
-                  firebaseStatusMessage={firebaseStatusMessage} // Pass Firebase status
                 />;
       case 'settings':
         return <SettingsView 
@@ -592,9 +571,6 @@ const App: React.FC<AppProps> = ({ instanceId, instanceName, initialInstanceData
   if (!isGoogleConfigComplete) {
     apiKeyErrorMessages.push("Google Client ID (GOOGLE_CLIENT_ID) for Calendar is not configured. Google features are disabled.");
   }
-  if (firebaseServiceInstance.error) {
-    apiKeyErrorMessages.push(`Firebase Connection Error: ${firebaseServiceInstance.error}. Data persistence is affected.`);
-  }
 
   const combinedApiKeyError = apiKeyErrorMessages.join(" ");
 
@@ -607,7 +583,6 @@ const App: React.FC<AppProps> = ({ instanceId, instanceName, initialInstanceData
                 <p className="text-xs mt-1">
                     { !isGeminiApiKeyConfigured && "Ensure API_KEY environment variable is set globally. "}
                     { !isGoogleConfigComplete && "For Google features, set GOOGLE_CLIENT_ID in environment, provide it in the Account tab, or ensure the default fallback is active."}
-                    { firebaseServiceInstance.error && "Check Firebase setup and console for details."}
                 </p>
               </div></div></div>
       )}
